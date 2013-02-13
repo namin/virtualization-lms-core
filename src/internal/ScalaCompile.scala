@@ -49,14 +49,19 @@ trait ScalaCompile extends Expressions {
   var dumpGeneratedCode = false
 
   def compile[A,B](f: Exp[A] => Exp[B])(implicit mA: Manifest[A], mB: Manifest[B]): A=>B = {
+    compile(f, None)(mA, mB)
+  }
+
+  def compile[A,B](f: Exp[A] => Exp[B], wrap: Option[String])(implicit mA: Manifest[A], mB: Manifest[B]): A=>B = {
     if (this.compiler eq null)
       setupCompiler()
     
+    val objName = "objstaged$" + compileCount
     val className = "staged$" + compileCount
     compileCount += 1
     
     val source = new StringWriter()
-    val staticData = codegen.emitSource(f, className, new PrintWriter(source))
+    val staticData = codegen.emitSource(f, className, new PrintWriter(source), wrap.map(s => objName + " extends " + s))
 
     if (dumpGeneratedCode) println(source)
 
@@ -81,7 +86,12 @@ trait ScalaCompile extends Expressions {
     val parent = this.getClass.getClassLoader
     val loader = new AbstractFileClassLoader(fileSystem, this.getClass.getClassLoader)
 
-    val cls: Class[_] = loader.loadClass(className)
+    val classNameForLoading = wrap match {
+      case None => className
+      case Some(s) => objName+"$"+className
+    }
+
+    val cls: Class[_] = loader.loadClass(classNameForLoading)
     val cons = cls.getConstructor(staticData.map(_._1.tp.erasure):_*)
     
     val obj: A=>B = cons.newInstance(staticData.map(_._2.asInstanceOf[AnyRef]):_*).asInstanceOf[A=>B]

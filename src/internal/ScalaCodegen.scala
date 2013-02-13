@@ -20,6 +20,15 @@ trait ScalaCodegen extends GenericCodegen with Config {
   }
 
   def emitSource[A : Manifest](args: List[Sym[_]], body: Block[A], className: String, out: PrintWriter) = {
+    emitSource(args, body, className, out, None)
+  }
+  def emitSource[T : Manifest, R : Manifest](f: Exp[T] => Exp[R], className: String, stream: PrintWriter, obj: Option[String]): List[(Sym[Any], Any)] = {
+    val s = fresh[T]
+    val body = reifyBlock(f(s))
+    emitSource(List(s), body, className, stream, obj)
+  }
+
+  def emitSource[A : Manifest](args: List[Sym[_]], body: Block[A], className: String, out: PrintWriter, obj: Option[String]) = {
 
     val sA = remap(manifest[A])
 
@@ -32,6 +41,7 @@ trait ScalaCodegen extends GenericCodegen with Config {
       emitFileHeader()
 
       // TODO: separate concerns, should not hard code "pxX" name scheme for static data here
+      obj.foreach(o => stream.println("object " + o + " {\n"))
       stream.println("class "+className+(if (staticData.isEmpty) "" else "("+staticData.map(p=>"p"+quote(p._1)+":"+p._1.tp).mkString(",")+")")+" extends (("+args.map(a => remap(a.tp)).mkString(", ")+")=>("+sA+")) {")
       stream.println("def apply("+args.map(a => quote(a) + ":" + remap(a.tp)).mkString(", ")+"): "+sA+" = {")
     
@@ -44,6 +54,7 @@ trait ScalaCodegen extends GenericCodegen with Config {
       stream.println("/*****************************************\n"+
                      "  End of Generated Code                  \n"+
                      "*******************************************/")
+      obj.foreach(o => stream.println("}"))
     }
     
     staticData
