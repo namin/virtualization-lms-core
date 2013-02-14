@@ -52,6 +52,8 @@ trait ScalaCompile extends Expressions {
     compile(f, None)(mA, mB)
   }
 
+  val showSource = false
+
   def compile[A,B](f: Exp[A] => Exp[B], wrap: Option[String])(implicit mA: Manifest[A], mB: Manifest[B]): A=>B = {
     if (this.compiler eq null)
       setupCompiler()
@@ -71,6 +73,11 @@ trait ScalaCompile extends Expressions {
     val fileSystem = new VirtualDirectory("<vfs>", None)
     compiler.settings.outputDirs.setSingleOutput(fileSystem)
   //      compiler.genJVM.outputDir = fileSystem
+
+
+    if (showSource) {
+      println(source.toString)
+    }
 
     run.compileSources(List(new util.BatchSourceFile("<stdin>", source.toString)))
     reporter.printSummary()
