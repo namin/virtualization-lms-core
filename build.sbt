@@ -7,7 +7,7 @@ organization := "EPFL"
 //resolvers += Resolver.sonatypeRepo("snapshots") // for ScalaTest
 
 
-scalaHome := Some(file(Path.userHome + "/code/virt/scala-namin-patmat/build/pack"))
+//scalaHome := Some(file(Path.userHome + "/code/virt/scala-namin-patmat/build/pack"))
 
 scalaOrganization := "org.scala-lang.virtualized"
 
